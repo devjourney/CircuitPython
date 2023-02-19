@@ -3,6 +3,8 @@ import board
 import pwmio
 from analogio import AnalogIn
 from adafruit_motor import servo
+import digitalio
+from adafruit_debouncer import Button
 
 
 class Potentiometer:
@@ -39,22 +41,40 @@ class Potentiometer:
         return max(0.0, min(1.0, result))
 
 
+# two continuous rotation servos on D11 and D12
 pwm11 = pwmio.PWMOut(board.D11, frequency=50)
 pwm12 = pwmio.PWMOut(board.D12, frequency=50)
-pot = Potentiometer(board.A5, tolerance=700)
 right_servo = servo.ContinuousServo(pwm11, min_pulse=500, max_pulse=2575)
 left_servo = servo.ContinuousServo(pwm12, min_pulse=500, max_pulse=2575)
 
+# a potentiometer on A5 for servo speed and direction control
+pot = Potentiometer(board.A5, tolerance=700)
+
+# a debounced button on D10 to toggle in and out of sticky mode
+btn10 = digitalio.DigitalInOut(board.D10)
+btn10.direction = digitalio.Direction.INPUT
+btn10.pull = digitalio.Pull.UP
+sticky_button = Button(btn10)
+
+# track sticky mode
+sticky = True
+
 while True:
+    sticky_button.update()
+    if sticky_button.pressed:
+        sticky = not sticky
+
     if pot.changeDetected:
-        speed_and_direction = pot.mapValueTo(-1.0, 1.0, 2)
-        # make the zone around zero (stopped) sticky
-        if abs(speed_and_direction) < 0.03:
-            print('SpeedDir = stopped')
+        speed_and_direction = pot.mapValueTo(-0.2, 0.2, 3)
+        # make the zone around zero (stopped) sticky when enabled
+        if sticky and abs(speed_and_direction) < 0.015:
             right_servo.fraction = None
             left_servo.fraction = None
+            print(
+                f'SD={speed_and_direction} (stopped), DC={pwm11.duty_cycle}, Sticky={sticky}')
         else:
-            print(f'SpeedDir = {speed_and_direction}')
             right_servo.throttle = speed_and_direction
             left_servo.throttle = speed_and_direction
+            print(
+                f'SD={speed_and_direction}, DC={pwm11.duty_cycle}, Sticky={sticky}')
     time.sleep(0.1)
