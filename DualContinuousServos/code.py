@@ -44,8 +44,8 @@ class Potentiometer:
 # two continuous rotation servos on D11 and D12
 pwm11 = pwmio.PWMOut(board.D11, frequency=50)
 pwm12 = pwmio.PWMOut(board.D12, frequency=50)
-right_servo = servo.ContinuousServo(pwm11, min_pulse=500, max_pulse=2575)
-left_servo = servo.ContinuousServo(pwm12, min_pulse=500, max_pulse=2575)
+right_servo = servo.ContinuousServo(pwm11, min_pulse=1000, max_pulse=2000)
+left_servo = servo.ContinuousServo(pwm12, min_pulse=1000, max_pulse=2000)
 
 # a potentiometer on A5 for servo speed and direction control
 pot = Potentiometer(board.A5, tolerance=700)
@@ -65,7 +65,7 @@ while True:
         sticky = not sticky
 
     if pot.changeDetected:
-        speed_and_direction = pot.mapValueTo(-0.2, 0.2, 3)
+        speed_and_direction = pot.mapValueTo(-0.4, 0.45, 3)
         # make the zone around zero (stopped) sticky when enabled
         if sticky and abs(speed_and_direction) < 0.015:
             right_servo.fraction = None
