@@ -1,0 +1,71 @@
+import board
+import analogio
+
+try:
+    from typing import Sequence, Tuple, List
+except ImportError:
+    pass
+
+__version__ = "0.0.0+auto.0"
+__repo__ = "https://github.com/adafruit/Adafruit_CircuitPython_BoardTest.git"
+
+# Constants
+VOLTAGE_MONITOR_PIN_NAMES = ["VOLTAGE_MONITOR", "BATTERY"]
+ANALOG_REF = 3.3  # Reference analog voltage
+ANALOGIN_BITS = 16  # ADC resolution (bits) for CircuitPython
+MULTIPLIER = 2.0  # account for voltage divider on the battery monitor
+
+# Test result strings
+PASS = "PASS"
+FAIL = "FAIL"
+NA = "N/A"
+
+
+def run_test(pins: Sequence[str]) -> Tuple[str, List[str]]:
+    """
+    Prints out voltage on the battery monitor or voltage monitor pin.
+
+    :param list[str] pins: list of pins to run the test on
+    :return: tuple(str, list[str]): test result followed by list of pins tested
+    """
+
+    # Look for pins with battery monitoring names
+    monitor_pins = list(set(pins).intersection(set(VOLTAGE_MONITOR_PIN_NAMES)))
+
+    # Print out voltage found on these pins
+    if monitor_pins:
+
+        # Print out the monitor pins found
+        print("Voltage monitor pins found:", end=" ")
+        for pin in monitor_pins:
+            print(pin, end=" ")
+        print("\n")
+
+        # Print out the voltage found on each pin
+        for pin in monitor_pins:
+            monitor = analogio.AnalogIn(getattr(board, pin))
+            print(monitor.value)
+            voltage = (monitor.value * ANALOG_REF *
+                       MULTIPLIER) / (2**ANALOGIN_BITS)
+            print(pin + ": {:.2f}".format(voltage) + " V")
+            monitor.deinit()
+        print()
+
+        # Ask the user to check these voltages
+        print("Use a multimeter to verify these voltages.")
+        print(
+            "Note that some battery monitor pins might have onboard "
+            + "voltage dividers."
+        )
+        print("Do the values look reasonable? [y/n]")
+        if input() == "y":
+            return PASS, monitor_pins
+
+        return FAIL, monitor_pins
+
+    # Else (no pins found)
+    print("No battery monitor pins found")
+    return NA, []
+
+
+print(run_test(["VOLTAGE_MONITOR"]))
